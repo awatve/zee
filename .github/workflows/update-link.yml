@@ -1,0 +1,44 @@
+name: Update final redirect link daily
+
+on:
+  schedule:
+    - cron: '22 4 * * *'          # ≈ 00:22 UTC = very early morning your time
+  workflow_dispatch:              # allows manual trigger from GitHub UI
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0            # needed for proper git commit history
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate page & check for changes
+        id: check
+        run: |
+          python generate_page.py
+        continue-on-error: true     # we use exit code to decide
+
+      - name: Commit & push if changed
+        if: steps.check.outcome == 'failure'   # our script exits 1 when changed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name  "GitHub Action"
+          git config user.email "action@github.com"
+          
+          git add index.html
+          git commit -m "chore: update final redirect URL ($(date -u +'%Y-%m-%d %H:%M UTC'))" || echo "No changes to commit"
+          git push
