@@ -28,7 +28,7 @@ jobs:
       - name: Generate page & check for changes
         id: check
         run: |
-          python generate_page.py
+          python generate_cookie.py
         continue-on-error: true     # we use exit code to decide
 
       - name: Commit & push if changed
